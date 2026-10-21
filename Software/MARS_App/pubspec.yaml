@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # version: name+build. Android and the update check compare the build number;
 # tools/publish_release.ps1 raises it.
-version: 1.1.2+5
+version: 1.2.0+6
 
 environment:
   sdk: ^3.13.4

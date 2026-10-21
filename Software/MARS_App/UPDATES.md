@@ -22,7 +22,7 @@ When you make an update, add a section at the top with the version, build, date,
   - The resolution adapts to hold the frame rate.
 - **Big touch screens** in the game, a **TOUCH** mode to try it without the robot, and a pause button.
 - **Session logs are kept on EXIT and Back:** a running session is ended and saved first.
-- **The app is about 40 MB smaller.**
+- **The APK is 51.5 MB**, down from 62.8 MB.
 
 ## 1.1.2 (build 5): 2026-10-21
 
