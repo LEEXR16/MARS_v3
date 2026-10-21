@@ -9,6 +9,13 @@ When you make an update, add a section at the top with the version, build, date,
 
 ---
 
+## 1.1.1 (build 4): 2026-10-21
+
+- **Changed:** 2026-10-21
+- **Released:** 2026-10-21, from the laptop with `tools/publish_release.ps1` (release `v1.1.1-b4`)
+
+- **New app icon:** the MARS lever on Mars, in its 60–120° window. It replaces Flutter's default and is an adaptive icon on Android 8+. It was drawn by `tools/make_icon.py`.
+
 ## 1.1.0 (build 3): 2026-10-21
 
 - **Changed:** 2026-10-21
