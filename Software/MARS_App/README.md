@@ -5,7 +5,7 @@ The tablet version of the MARS desktop GUI's machine interface, built the same w
 - **Welcome screen:** a **Machine interface** card showing whether the robot is connected. Tap it to open the MARS tab. Inside, the house icon or Android **Back** returns to the welcome screen. The connection and any recording carry on while you are there.
 - **Bluetooth:** it uses **BLE** through the **FSC-BT986** module on the robot's Teensy (Serial5, pins 20 / 21). This is the same module as DYNABO, with service FFF0, notify FFF1 and write FFF2. No module settings need to change. It needs `Firmware_SOLO_v2` on the Teensy.
 - **Protocol:** the Bluetooth link carries exactly the robot's USB lines (`D`, `M`, `L`, `P`, `I` and commands such as `EN`, `GO 90`, `WINDOW`). The laptop GUI can use Bluetooth too (`BLE …` entries in its port list).
-- **Game and 3D model:** the **GAME** card (and the GAME button in the MARS tab) runs VOID WING. The robot card shows the live **3D CAD model**. Both are web pages in a WebView: see **Game** and **3D model** below.
+- **Game and 3D model:** the **GAME** card (and the GAME button in the MARS tab) runs VOID WING. The robot card shows the live **3D model**. Both are web pages in a WebView: see **Game** and **3D model** below.
 - **Screen:** landscape only. It is laid out for tablets of about 1280 × 800 dp; from about 1024 dp wide, the side columns get narrower.
 
 ## Build and install
@@ -65,25 +65,28 @@ The welcome screen shows the app's version and a **Check for updates** button. U
 
 ## 3D model
 
-`assets/web/robot3d/` is the robot's CAD model (PERSEVERANCE_V1-3, re-jointed in Fusion 360) rigged as a joint chain. It started from the HMI digital twin, and its joint directions were checked against the real robot.
-
-**The CAD is private:** `models/mars_robot.gltf` and `.bin` are not in this repository. The release workflow copies them in from `LEEXR16/MARS_v3-archive` (secret `ARCHIVE_DEPLOY_KEY`). To build on a laptop, copy them from the archive's `HMI/frontend/models/` first. Without them, the 3D view says the model failed to load.
-- **Engine:** three.js r169, bundled with the app, so it works offline.
-- **Data:** the app sets `window.marsState = {live, theta1, enc, encOk, mode}` 10 times a second. The page eases the joints towards it.
+`assets/web/robot3d/` is the desktop GUI's 3D view (`MARS_GUI/view3d.py`) as a solid model. It uses the same geometry, frames and behaviour as the GUI's `kinematics.py`.
+- **Robot:** the column, load platform and AK10-9 motor are fixed. The robot plane turns about the motor shaft by θ1. The links (480 mm and 300 mm) turn about the plane's normal by θ2–θ4.
+- **Cuff:** the gap closes when the arm is locked. The colour is amber for open, gold for measuring (it pulses) and green for locked.
+- **Arm and HUD:** the stylised human arm uses the same two-link IK as the GUI and fades in once the arm is cuffed. The text in the top left is the GUI's HUD: the cuff position in mm and the cuff state.
+- **No data:** it shows the start pose, as the GUI does.
+- **Engine:** three.js r169 in `assets/web/lib/`, bundled with the app, so it works offline.
+- **Data:** the app sets `window.marsState = {live, theta1, enc, encOk, mode, cal, armOk}` 10 times a second. The page eases the joints towards it.
 - **Controls:** drag to turn the view, pinch to zoom.
-- **Checking it on a PC:** serve `assets/web/` (for example `python -m http.server`) and open `robot3d/index.html?demo`, or `?zero&cam=x,y,z` for the start pose.
-- **Export fix:** every part in the CAD export carries the same transform (a 45° turn with a √2 stretch). `scene.js` drops it: otherwise the robot leans and the joints turn about the wrong points.
+- **Checking it on a PC:** serve `assets/web/` (for example `python -m http.server`) and open `robot3d/index.html?demo`, `?zero` (start pose), or `?pose=θ1,θ2,θ3,θ4&state=open|measuring|cuffed|assist`.
 
 ## Game
 
-VOID WING (`Software/VoidWing`) as a Godot web export in `assets/web/game/`, full screen in a WebView, as DYNABO runs its game.
-- **Input:** the app sets `window.marsInput` from every telemetry line: the desktop GUI's UDP JSON (θ1–θ4, cuff position from the same kinematics, mode, encoders OK) plus `seq`.
-- **Calibration:** the game calibrates the arm itself, the same as on the laptop.
-- **Session logs:** the game posts them to the app, which saves `sessions.csv` and `session_<time>.csv` in `Android/data/com.mars.mars_app/files/MARS/game/`.
+VOID WING, written in three.js for the tablet (`assets/web/game/`) and shown full screen in a WebView, as DYNABO runs its game. It is the same game as the laptop's Godot version (`Software/VoidWing`): the same rules, numbers, arm mapping, calibration and session files. It is built for a tablet's GPU.
+- **Graphics:** the Gargantua sky is rendered once into a cubemap. Asteroids are instanced, and each ship's parts are merged per material. Engines, lasers, fire and the reactor bloom at half resolution. The drawing resolution drops by itself (down to 60 %) if frames get slow.
+- **No splash:** there is no engine to load, so the game opens straight onto its start screen.
+- **Input:** the app sets `window.marsInput` from every telemetry line: the desktop GUI's UDP JSON (θ1–θ4, cuff position from the same kinematics, mode, encoders OK) plus `seq`. **TOUCH** mode steers by dragging, for trying it without the robot.
+- **Calibration:** the game calibrates the arm itself, as on the laptop. The calibration and settings are kept in the page's storage on the tablet, which is why the local server keeps a fixed port.
+- **Session logs:** the game posts them to the app, which saves `sessions.csv` and `session_<time>.csv` in `Android/data/com.mars.mars_app/files/MARS/game/`. **EXIT** and Back end a running session first, so it is saved.
 - **The robot:** the game never commands it. **EXIT** and **HOLD** stay on screen, and the app's background-HOLD rule still applies.
-- **Updating the game:** export it again (see `Software/VoidWing/README.md`), then release the app.
+- **Checking it on a PC:** serve `assets/web/` and open `game/index.html`. Add `?state=play&auto&input=touch` for an autopilot session, or `&input=robot&feed` for a fake arm. Test runs started with `state=` send no logs.
 
-**Local server:** both pages fetch their files (ES modules, the model's `.bin`, the game's `.wasm` and `.pck`). Android's WebView blocks that for `file://` pages, so `lib/core/asset_server.dart` serves `assets/web/` on `127.0.0.1` only. Only this device can reach it, and `res/xml/network_security_config.xml` allows plain HTTP to 127.0.0.1 alone.
+**Local server:** both pages are ES modules, and Android's WebView blocks module imports for `file://` pages. `lib/core/asset_server.dart` serves `assets/web/` on `127.0.0.1` only, on port 47811 when it is free. Only this device can reach it, and `res/xml/network_security_config.xml` allows plain HTTP to 127.0.0.1 alone.
 
 ## Safety
 
@@ -124,8 +127,9 @@ lib/
     device_tab.dart       DeviceController interface
     tabs/mars_tab.dart    the MARS interface
 assets/web/
-  robot3d/                the 3D model page: three.js r169, scene.js, models/ (the private CAD, not in this repo)
-  game/                   VOID WING web export (from Software/VoidWing)
+  lib/                    three.js r169 + the addons the pages use (MIT, LICENSE-three.txt)
+  robot3d/                the 3D model page (scene.js: the GUI's view3d.py)
+  game/                   VOID WING in three.js (js/: world, ships, actors, fx, hud, menu, input, sfx)
 tools/
   publish_release.ps1     build + publish a release from the laptop
 test/

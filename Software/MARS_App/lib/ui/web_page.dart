@@ -68,4 +68,17 @@ class LocalWebPage {
   }
 
   Future<void> reload() async => _ctl?.reload();
+
+  /// Runs `js` in the page and returns its result as a string ('' when there is no page or it fails).
+  Future<String> evaluate(String js) async {
+    final c = _ctl;
+    if (c == null) return '';
+    try {
+      final r = await c.runJavaScriptReturningResult(js);
+      final v = r.toString();
+      return v.length >= 2 && v.startsWith('"') && v.endsWith('"') ? v.substring(1, v.length - 1) : v;
+    } catch (_) {
+      return '';
+    }
+  }
 }

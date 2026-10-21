@@ -7,17 +7,20 @@
 <style>
   html, body { margin: 0; height: 100%; overflow: hidden; background: #16100b; }
   #viewport { position: absolute; inset: 0; touch-action: none; }
-  #status { position: absolute; left: 10px; bottom: 8px; font: 12px monospace; color: #ad9478; pointer-events: none; }
-  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-             font: 13px monospace; color: #ad9478; pointer-events: none; }
+  .hud { position: absolute; pointer-events: none; font: 12px/1.45 Consolas, "Roboto Mono", monospace;
+         color: #ad9478; white-space: pre; text-shadow: 0 1px 2px #000; }
+  #hud { left: 10px; top: 8px; }
+  #status { left: 10px; bottom: 8px; color: #6e5a45; }
+  #state { font-weight: 700; letter-spacing: 1px; }
 </style>
 </head>
 <body>
   <div id="viewport"></div>
-  <div id="loading">loading the robot model…</div>
-  <div id="status"></div>
+  <div class="hud" id="hud"><span id="cuff"></span>
+<span id="state"></span></div>
+  <div class="hud" id="status"></div>
   <script type="importmap">
-  { "imports": { "three": "./lib/three.module.js", "three/addons/": "./lib/addons/" } }
+  { "imports": { "three": "../lib/three.module.js", "three/addons/": "../lib/addons/" } }
   </script>
   <script type="module" src="scene.js"></script>
 </body>

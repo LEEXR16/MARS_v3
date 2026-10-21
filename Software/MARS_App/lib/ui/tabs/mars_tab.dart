@@ -162,6 +162,8 @@ class _MarsTabState extends State<MarsTab> {
       'enc': s?.joints ?? [0, 0, 0],
       'encOk': [for (var i = 0; i < 3; i++) s?.encOk(i) ?? false],
       'mode': s?.mode ?? '',
+      'cal': s?.cal ?? 0, // 2 = measuring the arm: the cuff pulses
+      'armOk': (device.params['arm_ok'] ?? 0) == 1, // cuff shown locked
     });
   }
 

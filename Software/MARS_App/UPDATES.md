@@ -9,6 +9,21 @@ When you make an update, add a section at the top with the version, build, date,
 
 ---
 
+## 1.2.0 (build 6): 2026-10-21
+
+- **Changed:** 2026-10-21
+- **Released:** 2026-10-21, from the laptop with `tools/publish_release.ps1` (release `v1.2.0-b6`)
+
+- **New 3D model:** the desktop GUI's 3D view (`view3d.py`) as a solid robot, with the same kinematics. It shows the plane turning with θ1, the links, the cuff that closes and changes colour with its state, the stylised arm, and the GUI's cuff HUD. The CAD model is gone from the app.
+- **VOID WING rebuilt for the tablet in three.js:** the same game and rules, without the Godot boot screen and its 40 MB engine. The new graphics:
+  - The Gargantua sky is baked once.
+  - Bloom on engines, lasers and explosions.
+  - Smooth asteroids.
+  - The resolution adapts to hold the frame rate.
+- **Big touch screens** in the game, a **TOUCH** mode to try it without the robot, and a pause button.
+- **Session logs are kept on EXIT and Back:** a running session is ended and saved first.
+- **The app is about 40 MB smaller.**
+
 ## 1.1.2 (build 5): 2026-10-21
 
 - **Changed:** 2026-10-21

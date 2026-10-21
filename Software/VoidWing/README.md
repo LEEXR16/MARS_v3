@@ -9,23 +9,13 @@ The arm in the robot steers. Lifting the lever climbs and dives, sweeping the ha
 | | Arm input | Session logs |
 |---|---|---|
 | **Laptop:** `VoidWing.bat` (portable Godot at `D:\SOFTWARE\Godot`), or the MARS GUI's **Launch game** | UDP JSON from the MARS GUI on 127.0.0.1:5005 | `logs/sessions.csv` and `logs/session_<time>.csv` here (never committed) |
-| **Tablet:** the web export, inside the MARS app (**GAME**) | `window.marsInput`, set by the app from the robot's Bluetooth data | sent to the app, which saves them in `MARS/game/` on the tablet |
+| **Tablet:** the MARS app's **GAME**, which runs a three.js version of this game (`Software/MARS_App/assets/web/game/`), not a Godot export | `window.marsInput`, set by the app from the robot's Bluetooth data | sent to the app, which saves them in `MARS/game/` on the tablet |
 
-Both read the same JSON: `{"t", "th1".."th4", "cuff_mm": [x, y, z], "mode", "enc_ok"}`. On the tablet it also carries a `seq` number.
+Both read the same JSON: `{"t", "th1".."th4", "cuff_mm": [x, y, z], "mode", "enc_ok"}`. On the tablet it also carries a `seq` number. Both write the same session files.
 
-## Exporting for the tablet app
+**The tablet version is separate code.** Godot's web export showed its boot screen, weighed 40 MB and could only use the Compatibility renderer, so the tablet now runs its own three.js port. The two share their numbers (the DIFF table, speeds, damage, the arena, the arm mapping) but not their code. A rule changed here has to be changed in `MARS_App/assets/web/game/js/` too. The web code paths still in these scripts (`OS.has_feature("web")`) are left over from the old export.
 
-Export with Godot's **Web** export templates for 4.7.2. In the editor, Project → Export → **Web** → Export Project. From the command line:
-
-```
-Godot_v4.7.2-stable_win64_console.exe --headless --path . --export-release "Web" ../MARS_App/assets/web/game/index.html
-```
-
-- **Threads:** the preset (`export_presets.cfg`) builds without threads, so the page needs no special server headers.
-- **Excluded files:** `logs/` and `VoidWing.bat` are left out.
-- **Renderer:** the web build uses Godot's Compatibility renderer. `project.godot` turns off high-DPI rendering and screen-space AA for it, and the asteroids use a lighter mesh (`space.gd`).
-
-**Logs are therapy data.** `logs/` is ignored by git and holds a `.gdignore`. Without it, Godot would import the CSVs as translations and pack them into an export.
+**Logs are therapy data.** `logs/` is ignored by git and holds a `.gdignore`. Without it, Godot would import the CSVs as translations.
 
 ## Checking the look without playing
 

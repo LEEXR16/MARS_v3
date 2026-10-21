@@ -31,13 +31,15 @@ flutter:
   # Web pages served to the WebViews by lib/core/asset_server.dart (each folder is listed: Flutter
   # doesn't include sub-folders by itself)
   assets:
+    - assets/web/lib/
+    - assets/web/lib/addons/controls/
+    - assets/web/lib/addons/environments/
+    - assets/web/lib/addons/postprocessing/
+    - assets/web/lib/addons/shaders/
     - assets/web/robot3d/
-    - assets/web/robot3d/lib/
-    - assets/web/robot3d/lib/addons/controls/
-    - assets/web/robot3d/lib/addons/loaders/
-    - assets/web/robot3d/lib/addons/utils/
-    - assets/web/robot3d/models/
     - assets/web/game/
+    - assets/web/game/js/
+    - assets/web/game/fonts/
   fonts:
     # Oxanium (OFL), the MARS GUI's title font
     - family: Oxanium

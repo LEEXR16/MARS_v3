@@ -1,9 +1,10 @@
 /// A tiny web server on 127.0.0.1 that serves the app's own `assets/web/` folder to its WebViews.
 ///
-/// The 3D model page (three.js modules + a glTF with a separate .bin) and the game (Godot web
-/// export: .wasm + .pck) fetch their files, and Android's WebView blocks that for pages loaded from
-/// file:// (DYNABO's game only needed plain scripts, so it could use loadFlutterAsset). Only this
-/// device can reach the server (loopback), and it serves nothing but the bundled assets.
+/// The 3D model page and the game are three.js ES modules (assets/web/lib), and Android's WebView
+/// blocks module imports for pages loaded from file://. Only this device can reach the server
+/// (loopback), and it serves nothing but the bundled assets. It keeps one port when it can, so the
+/// pages' origin stays the same and the game's saved arm calibration and settings (localStorage)
+/// survive app restarts.
 library;
 
 import 'dart:async';
@@ -15,6 +16,9 @@ class AssetServer {
   AssetServer._();
   static final AssetServer instance = AssetServer._();
 
+  /// The pages' port (their origin, so their localStorage belongs to it).
+  static const fixedPort = 47811;
+
   HttpServer? _server;
   Future<HttpServer>? _starting;
   final Map<String, Uint8List> _cache = {};
@@ -24,10 +28,7 @@ class AssetServer {
     'js': 'text/javascript; charset=utf-8',
     'mjs': 'text/javascript; charset=utf-8',
     'json': 'application/json',
-    'gltf': 'model/gltf+json',
-    'bin': 'application/octet-stream',
-    'wasm': 'application/wasm',
-    'pck': 'application/octet-stream',
+    'ttf': 'font/ttf',
     'png': 'image/png',
     'svg': 'image/svg+xml',
     'ico': 'image/x-icon',
@@ -42,7 +43,12 @@ class AssetServer {
   }
 
   Future<HttpServer> _start() async {
-    final s = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    HttpServer s;
+    try {
+      s = await HttpServer.bind(InternetAddress.loopbackIPv4, fixedPort);
+    } on SocketException {
+      s = await HttpServer.bind(InternetAddress.loopbackIPv4, 0); // taken: any port (settings reset)
+    }
     s.listen(_serve);
     _server = s;
     return s;
@@ -59,10 +65,7 @@ class AssetServer {
       final ext = path.split('.').last.toLowerCase();
       res.headers
         ..set(HttpHeaders.contentTypeHeader, _types[ext] ?? 'application/octet-stream')
-        ..set(HttpHeaders.cacheControlHeader, 'no-cache')
-        // Godot's web export can also run threaded builds with these; harmless for the others
-        ..set('Cross-Origin-Opener-Policy', 'same-origin')
-        ..set('Cross-Origin-Embedder-Policy', 'require-corp');
+        ..set(HttpHeaders.cacheControlHeader, 'no-cache');
       res.contentLength = bytes.length;
       res.add(bytes);
     } catch (_) {
@@ -71,7 +74,7 @@ class AssetServer {
     await res.close();
   }
 
-  /// Drops cached files (the game's ~40 MB engine) when no page needs them.
+  /// Drops cached files when no page needs them.
   void releaseCache() => _cache.clear();
 
   Future<void> stop() async {
