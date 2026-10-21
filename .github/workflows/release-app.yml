@@ -120,6 +120,14 @@ jobs:
       - name: Build
         run: flutter build apk --release --build-name "$VERSION" --build-number "$BUILD"
 
+      - name: Check the APK's signature (the keystore check alone let 1.0.0 out with another key)
+        run: |
+          signer=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)apksigner
+          fp=$("$signer" verify --print-certs build/app/outputs/flutter-apk/app-release.apk | awk '/certificate SHA-256 digest/ {print $NF; exit}')
+          want=$(echo "$KEY_SHA256" | tr -d ':' | tr 'A-F' 'a-f')
+          echo "APK signed by $fp"
+          [[ "$fp" == "$want" ]] || { echo "::error::The APK is signed with another key ($fp): tablets would refuse it"; exit 1; }
+
       - name: Release files
         run: |
           mkdir -p out

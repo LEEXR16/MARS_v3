@@ -9,6 +9,17 @@ When you make an update, add a section at the top with the version, build, date,
 
 ---
 
+## 1.1.2 (build 5): 2026-10-21
+
+- **Changed:** 2026-10-21
+- **Released:** 2026-10-21, from the laptop with `tools/publish_release.ps1` (release `v1.1.2-b5`)
+
+**A smoother update:**
+- **Signing:** releases are signed with an explicitly named keystore. 1.0.0, built on GitHub, had been signed with a key Gradle made itself, so tablets refused 1.1.x with "App not installed". Tablets with 1.0.0 need to uninstall and reinstall once.
+- **Both release paths** now check the finished APK's signature and refuse to publish one with another key.
+- **The app** checks the update's key before opening the installer, and explains instead of failing.
+- **"Install unknown apps":** the app asks for it itself, once, with a button to the setting, and the update continues by itself on return.
+
 ## 1.1.1 (build 4): 2026-10-21
 
 - **Changed:** 2026-10-21

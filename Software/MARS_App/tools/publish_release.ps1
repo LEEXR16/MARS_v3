@@ -50,6 +50,14 @@ $env:JAVA_TOOL_OPTIONS = "-Djava.net.preferIPv4Stack=true"   # Java downloads ti
 flutter build apk --release
 if ($LASTEXITCODE -ne 0) { throw "flutter build failed (pubspec.yaml already says $name+$build; that's fine, the next run raises it again)" }
 
+# ---- Signature: tablets refuse ("App not installed") an update signed with another key ----
+$keySha256 = "17f0d66c5209d0858fa245513b6de7e962f28def79971cfde6722f52d177f0a4"  # as in release-app.yml
+$tools = Get-ChildItem "$env:LOCALAPPDATA\Android\Sdk\build-tools" -Directory | Sort-Object Name | Select-Object -Last 1
+$certs = & "$($tools.FullName)\apksigner.bat" verify --print-certs "$app\build\app\outputs\flutter-apk\app-release.apk"
+$signed = ($certs | Select-String "certificate SHA-256 digest: (\w+)" | Select-Object -First 1).Matches.Groups[1].Value
+if ($signed -ne $keySha256) { throw "The APK is signed with another key ($signed): tablets would refuse it. Nothing was published." }
+Write-Host "Signed with the MARS key" -ForegroundColor Cyan
+
 # ---- Release files ----
 $out = "$app\release\$tag"
 New-Item -ItemType Directory -Force $out | Out-Null

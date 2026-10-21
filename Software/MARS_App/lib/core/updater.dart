@@ -10,6 +10,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:open_filex/open_filex.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -123,8 +124,41 @@ Future<File> downloadUpdate(AppUpdate u, void Function(double? progress) onProgr
   }
 }
 
-/// Opens Android's installer with the downloaded APK. The first time, Android asks to allow
-/// installs from this app ("Install unknown apps").
+const _installer = MethodChannel('mars/installer'); // android/.../MainActivity.kt
+
+/// Is Android's "Install unknown apps" allowed for MARS? (Asked once per tablet.)
+Future<bool> canInstallUpdates() async {
+  try {
+    return await _installer.invokeMethod<bool>('canInstall') ?? true;
+  } catch (_) {
+    return true; // can't tell: let Android's installer ask
+  }
+}
+
+/// Opens the "Install unknown apps" setting for MARS. False if the tablet has no such screen.
+Future<bool> openInstallSettings() async {
+  try {
+    return await _installer.invokeMethod<bool>('openInstallSettings') ?? false;
+  } catch (_) {
+    return false;
+  }
+}
+
+/// Is [apk] signed with the same key as the installed app? Android refuses an update signed with
+/// another key and only says "App not installed". Null = could not tell.
+Future<bool?> sameSigner(File apk) async {
+  try {
+    final r = await _installer.invokeMapMethod<String, Object?>('signers', {'path': apk.path});
+    final mine = (r?['installed'] as List?)?.cast<String>() ?? const [];
+    final theirs = (r?['apk'] as List?)?.cast<String>() ?? const [];
+    if (mine.isEmpty || theirs.isEmpty) return null;
+    return mine.toSet().containsAll(theirs) && theirs.toSet().containsAll(mine);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Opens Android's installer with the downloaded APK.
 Future<void> installUpdate(File apk) async {
   final r = await OpenFilex.open(apk.path, type: 'application/vnd.android.package-archive');
   if (r.type != ResultType.done) throw UpdateException('The installer could not be opened: ${r.message}');
