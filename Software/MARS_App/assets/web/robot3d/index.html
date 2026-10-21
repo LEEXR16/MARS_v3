@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>MARS 3D</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #16100b; }
+  #viewport { position: absolute; inset: 0; touch-action: none; }
+  #status { position: absolute; left: 10px; bottom: 8px; font: 12px monospace; color: #ad9478; pointer-events: none; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+             font: 13px monospace; color: #ad9478; pointer-events: none; }
+</style>
+</head>
+<body>
+  <div id="viewport"></div>
+  <div id="loading">loading the robot model…</div>
+  <div id="status"></div>
+  <script type="importmap">
+  { "imports": { "three": "./lib/three.module.js", "three/addons/": "./lib/addons/" } }
+  </script>
+  <script type="module" src="scene.js"></script>
+</body>
+</html>

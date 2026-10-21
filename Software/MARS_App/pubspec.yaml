@@ -4,7 +4,7 @@ publish_to: 'none'
 
 # version: name+build. Android and the update check compare the build number;
 # tools/publish_release.ps1 raises it.
-version: 1.0.0+1
+version: 1.1.0+2
 
 environment:
   sdk: ^3.13.4
@@ -19,6 +19,7 @@ dependencies:
   package_info_plus: ^10.2.2
   open_filex: ^4.7.0
   crypto: ^3.0.7
+  webview_flutter: ^4.14.1
 
 dev_dependencies:
   flutter_test:
@@ -27,6 +28,16 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  # Web pages served to the WebViews by lib/core/asset_server.dart (each folder is listed: Flutter
+  # doesn't include sub-folders by itself)
+  assets:
+    - assets/web/robot3d/
+    - assets/web/robot3d/lib/
+    - assets/web/robot3d/lib/addons/controls/
+    - assets/web/robot3d/lib/addons/loaders/
+    - assets/web/robot3d/lib/addons/utils/
+    - assets/web/robot3d/models/
+    - assets/web/game/
   fonts:
     # Oxanium (OFL), the MARS GUI's title font
     - family: Oxanium

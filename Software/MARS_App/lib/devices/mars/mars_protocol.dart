@@ -9,6 +9,8 @@
 /// App -> robot: one command per line (EN, DIS, HOLD, GO 90, WINDOW, BRAKE 0, ...), PING every 200 ms.
 library;
 
+import 'dart:math' as math;
+
 /// Telemetry D-line fields, in firmware order.
 const dFields = ['ms', 'mode', 'fault', 'theta', 'vel', 'tau', 'cur', 'temp', 'err', 'alpha', 'alpha_set', 'tff', 'kp',
   'ref', 'cal', 'th2', 'th3', 'th4', 'enc', 'fb'];
@@ -123,6 +125,35 @@ Map<String, double> parseP(String rest) {
     out[kv.substring(0, i)] = double.tryParse(kv.substring(i + 1)) ?? double.nan;
   }
   return out;
+}
+
+/// Cuff position in the world frame (mm), as fk() in the desktop GUI's kinematics.py:
+/// z = motor axis, x = down in the start pose; theta1 turns the robot plane about z.
+List<double> cuffMm(double t1Deg, double t2Deg, double t3Deg) {
+  double r(double d) => d * math.pi / 180;
+  final a2 = r(t2Deg), a23 = r(t2Deg + t3Deg);
+  final xp = j2X + r1 * math.cos(a2) + r2 * math.cos(a23); // in-plane "down"
+  final zp = j2Z + r1 * math.sin(a2) + r2 * math.sin(a23); // along the motor axis
+  final t1 = r(t1Deg);
+  return [xp * math.cos(t1), xp * math.sin(t1), zp];
+}
+
+/// What the game reads: the same JSON the desktop GUI sends it over UDP, plus a sequence number.
+Map<String, Object> gameInput(MarsSample s, int seq) {
+  final j = s.joints;
+  final c = cuffMm(s.theta, j[0], j[1]);
+  double r1d(double v) => (v * 10).roundToDouble() / 10;
+  return {
+    'seq': seq,
+    't': s.v['ms']! / 1000,
+    'th1': s.theta,
+    'th2': j[0],
+    'th3': j[1],
+    'th4': j[2],
+    'cuff_mm': [r1d(c[0]), r1d(c[1]), r1d(c[2])],
+    'mode': s.mode,
+    'enc_ok': s.allEncOk,
+  };
 }
 
 /// Weight (kg) and COP (mm, x + right towards LC2/LC4, y + front towards LC1/LC2), as LC_Weight_COP.

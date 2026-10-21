@@ -7,7 +7,8 @@ Firmware/
   Firmware_SOLO_v1/   one Teensy 4.1 runs everything (motor, encoders, load cells, solenoids), USB only
   Firmware_SOLO_v2/   SOLO_v1 + Bluetooth: FSC-BT986 on Serial5, the same lines as USB
 Software/
-  MARS_App/           Android tablet app (Flutter): the machine interface over Bluetooth
+  MARS_App/           Android tablet app (Flutter): machine interface, live 3D model, game, over Bluetooth
+  VoidWing/           the game (Godot 4.7.2): runs on the laptop, and as a web export inside the app
 .github/workflows/
   release-app.yml     builds the app and publishes it as a Release (tag app-v<version>)
 ```

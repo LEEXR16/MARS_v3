@@ -13,6 +13,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'core/line_device.dart';
 import 'core/updater.dart';
 import 'ui/device_tab.dart';
+import 'ui/game_screen.dart';
 import 'ui/tabs/mars_tab.dart';
 import 'ui/theme.dart' as th;
 import 'ui/update_dialog.dart';
@@ -214,6 +215,7 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
                 const SizedBox(height: 34),
                 Wrap(spacing: 16, runSpacing: 16, alignment: WrapAlignment.center, children: [
                   for (var i = 0; i < _ctls.length; i++) _deviceCard(i),
+                  for (final c in _ctls.whereType<MarsController>()) _gameCard(c),
                 ]),
               ]),
             ),
@@ -270,6 +272,48 @@ class _ShellState extends State<Shell> with WidgetsBindingObserver {
                 Text(status, style: const TextStyle(color: th.textMuted, fontSize: 12)),
                 const Spacer(),
                 const Icon(Icons.arrow_forward_rounded, size: 18, color: th.textMuted),
+              ]),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// VOID WING, steered by the arm in the robot (or by touch without it).
+  Widget _gameCard(MarsController c) {
+    return SizedBox(
+      width: 300,
+      height: 216,
+      child: Material(
+        color: th.card.withValues(alpha: 0.92),
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: const BorderSide(color: th.borderHi),
+        ),
+        child: InkWell(
+          onTap: () => openGame(context, c),
+          child: const Padding(
+            padding: EdgeInsets.all(22),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text('VOID WING',
+                    style: TextStyle(fontSize: 30, fontWeight: FontWeight.w300, letterSpacing: 7, fontFamily: th.titleFont)),
+              ),
+              Text('GAME', style: TextStyle(fontSize: 14, letterSpacing: 6, color: th.gold, fontFamily: th.titleFont)),
+              SizedBox(height: 8),
+              Text('Fly the Ranger with your arm', style: th.muted, maxLines: 1, overflow: TextOverflow.ellipsis),
+              Spacer(),
+              Row(children: [
+                Icon(Icons.sports_esports_rounded, size: 16, color: th.textMuted),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Connect the robot first to steer with the arm',
+                      style: TextStyle(color: th.textMuted, fontSize: 12), overflow: TextOverflow.ellipsis),
+                ),
               ]),
             ]),
           ),

@@ -7,3 +7,11 @@ desktop.ini
 *.keystore
 *.jks
 key.properties
+
+# Game session logs are therapy data: never commit them
+logs/
+**/logs/
+
+# Robot CAD: private, copied in by the release workflow (see the README there)
+Software/MARS_App/assets/web/robot3d/models/*
+!Software/MARS_App/assets/web/robot3d/models/README.md

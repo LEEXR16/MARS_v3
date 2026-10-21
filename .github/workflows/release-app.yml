@@ -11,6 +11,11 @@
 # key is never committed. It is the laptop's debug key (%USERPROFILE%\.android\debug.keystore), the
 # same as DYNABO's. The run stops if its fingerprint is not the expected one, because tablets refuse an
 # update signed with another key. Publishing uses the workflow's own token (contents: write).
+# And ARCHIVE_DEPLOY_KEY: the private half of a read-only deploy key on LEEXR16/MARS_v3-archive, to copy
+# the robot CAD (HMI/frontend/models) into the app; the CAD is kept out of this public repo. Set it up:
+#   ssh-keygen -t ed25519 -N "" -f archive_deploy
+#   gh repo deploy-key add archive_deploy.pub --repo LEEXR16/MARS_v3-archive --title "MARS_v3 release"
+#   gh secret set ARCHIVE_DEPLOY_KEY --repo LEEXR16/MARS_v3 < archive_deploy   (then delete both files)
 # The build number is the latest release's + 1 (or pubspec.yaml's + 1 if higher).
 name: Release tablet app
 
@@ -93,6 +98,18 @@ jobs:
           flutter-version: '3.47.5' # the laptop's version
           channel: stable
           cache: true
+
+      - name: Robot model (the CAD is private, from MARS_v3-archive)
+        env:
+          ARCHIVE_DEPLOY_KEY: ${{ secrets.ARCHIVE_DEPLOY_KEY }}
+        run: |
+          [[ -n "$ARCHIVE_DEPLOY_KEY" ]] || { echo "::error::Secret ARCHIVE_DEPLOY_KEY is missing (see the top of this file): the app's 3D view would have no model"; exit 1; }
+          mkdir -p ~/.ssh && echo "$ARCHIVE_DEPLOY_KEY" > ~/.ssh/archive && chmod 600 ~/.ssh/archive
+          GIT_SSH_COMMAND="ssh -i ~/.ssh/archive -o StrictHostKeyChecking=accept-new" \
+            git clone --depth 1 --filter=blob:none --sparse git@github.com:LEEXR16/MARS_v3-archive.git /tmp/archive
+          git -C /tmp/archive sparse-checkout set HMI/frontend/models
+          cp /tmp/archive/HMI/frontend/models/mars_robot.gltf /tmp/archive/HMI/frontend/models/mars_robot.bin assets/web/robot3d/models/
+          rm -rf /tmp/archive ~/.ssh/archive
 
       - name: Analyze and test
         run: |

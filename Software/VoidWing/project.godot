@@ -1,0 +1,29 @@
+; Engine configuration file.
+; Godot 4.7: run with  Godot --path <this folder>  (or VoidWing.bat)
+
+config_version=5
+
+[application]
+
+config/name="Void Wing"
+config/description="Space shooter for the MARS arm-support robot"
+run/main_scene="res://main.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+
+[display]
+
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/size/mode=3
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+; web build (MARS tablet app): render at CSS pixels, not the tablet's full retina resolution
+window/dpi/allow_hidpi.web=false
+
+[rendering]
+
+anti_aliasing/quality/msaa_3d=2
+anti_aliasing/quality/screen_space_aa=1
+anti_aliasing/quality/screen_space_aa.web=0
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality=3
+lights_and_shadows/directional_shadow/soft_shadow_filter_quality.web=1

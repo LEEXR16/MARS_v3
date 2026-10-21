@@ -5,6 +5,7 @@ The tablet version of the MARS desktop GUI's machine interface, built the same w
 - **Welcome screen:** a **Machine interface** card showing whether the robot is connected. Tap it to open the MARS tab. Inside, the house icon or Android **Back** returns to the welcome screen. The connection and any recording carry on while you are there.
 - **Bluetooth:** it uses **BLE** through the **FSC-BT986** module on the robot's Teensy (Serial5, pins 20 / 21). This is the same module as DYNABO, with service FFF0, notify FFF1 and write FFF2. No module settings need to change. It needs `Firmware_SOLO_v2` on the Teensy.
 - **Protocol:** the Bluetooth link carries exactly the robot's USB lines (`D`, `M`, `L`, `P`, `I` and commands such as `EN`, `GO 90`, `WINDOW`). The laptop GUI can use Bluetooth too (`BLE …` entries in its port list).
+- **Game and 3D model:** the **GAME** card (and the GAME button in the MARS tab) runs VOID WING. The robot card shows the live **3D CAD model**. Both are web pages in a WebView: see **Game** and **3D model** below.
 - **Screen:** landscape only. It is laid out for tablets of about 1280 × 800 dp; from about 1024 dp wide, the side columns get narrower.
 
 ## Build and install
@@ -54,13 +55,35 @@ The welcome screen shows the app's version and a **Check for updates** button. U
 |---|---|
 | **Header** | <ul><li>Bluetooth connection</li><li>stream rate</li><li>mode (and CAL in progress)</li><li>faults</li><li>brake</li><li>home set or not</li></ul> |
 | **Left** | <ul><li>**Motor θ1:** angle, target, speed, torque, feedforward, current, temperature, stiffness, α</li><li>**Encoders:** E1–E3 with green (OK), gold (magnet gap) or red (no reading) dots, and the raw counts</li><li>**Solenoids & power:** brake, motor power, config / left / right, height</li><li>**Load cells:** kg per cell, total, and the COP on the platform with a trail</li></ul> |
-| **Centre** | <ul><li>**Robot:** the lever dial (θ1, the 60–120° window, the target) and the arm in the robot's plane (θ2–θ4, start pose dashed)</li><li>**Lever angle θ1** and **Torque** plots (measured and target / feedforward)</li></ul> |
+| **Centre** | <ul><li>**Robot:** the live **3D model**, or (switch with the icon in the card header) the lever dial (θ1, the 60–120° window, the target) and the arm in the robot's plane (θ2–θ4, start pose dashed)</li><li>**Lever angle θ1** and **Torque** plots (measured and target / feedforward)</li></ul> |
 | **Right** | <ul><li>**HOLD** (always there)</li><li>**CONTROL:** Enable / Disable, Go to, **Start window 60–120°**, brake, solenoids, height (hold to move)</li><li>**ASSIST:** robot model, Arm attached / removed, support α, Start assist / Stop → hold</li><li>**SETUP:** clear fault, **Set home…**, measure lever, tare load cells, window spring, recording, raw command</li><li>the robot's messages</li></ul> |
 
 - **The firmware decides:** every safety rule is in `Firmware_SOLO_v2`. When it refuses a command, its reason appears as a warning. The app only greys out what can't work right now (for example, Enable while the brake is on).
 - **Brake release asks first:** with the motor off, releasing the brake leaves the lever unsupported until **Enable**. The app asks before it sends that.
 - **Sliders** (Go to, α, window spring) send the value where the finger stops, not every step.
 - **Height** moves only while the button is held. It repeats every 150 ms, and the firmware stops after 400 ms without a repeat.
+
+## 3D model
+
+`assets/web/robot3d/` is the robot's CAD model (PERSEVERANCE_V1-3, re-jointed in Fusion 360) rigged as a joint chain. It started from the HMI digital twin, and its joint directions were checked against the real robot.
+
+**The CAD is private:** `models/mars_robot.gltf` and `.bin` are not in this repository. The release workflow copies them in from `LEEXR16/MARS_v3-archive` (secret `ARCHIVE_DEPLOY_KEY`). To build on a laptop, copy them from the archive's `HMI/frontend/models/` first. Without them, the 3D view says the model failed to load.
+- **Engine:** three.js r169, bundled with the app, so it works offline.
+- **Data:** the app sets `window.marsState = {live, theta1, enc, encOk, mode}` 10 times a second. The page eases the joints towards it.
+- **Controls:** drag to turn the view, pinch to zoom.
+- **Checking it on a PC:** serve `assets/web/` (for example `python -m http.server`) and open `robot3d/index.html?demo`, or `?zero&cam=x,y,z` for the start pose.
+- **Export fix:** every part in the CAD export carries the same transform (a 45° turn with a √2 stretch). `scene.js` drops it: otherwise the robot leans and the joints turn about the wrong points.
+
+## Game
+
+VOID WING (`Software/VoidWing`) as a Godot web export in `assets/web/game/`, full screen in a WebView, as DYNABO runs its game.
+- **Input:** the app sets `window.marsInput` from every telemetry line: the desktop GUI's UDP JSON (θ1–θ4, cuff position from the same kinematics, mode, encoders OK) plus `seq`.
+- **Calibration:** the game calibrates the arm itself, the same as on the laptop.
+- **Session logs:** the game posts them to the app, which saves `sessions.csv` and `session_<time>.csv` in `Android/data/com.mars.mars_app/files/MARS/game/`.
+- **The robot:** the game never commands it. **EXIT** and **HOLD** stay on screen, and the app's background-HOLD rule still applies.
+- **Updating the game:** export it again (see `Software/VoidWing/README.md`), then release the app.
+
+**Local server:** both pages fetch their files (ES modules, the model's `.bin`, the game's `.wasm` and `.pck`). Android's WebView blocks that for `file://` pages, so `lib/core/asset_server.dart` serves `assets/web/` on `127.0.0.1` only. Only this device can reach it, and `res/xml/network_security_config.xml` allows plain HTTP to 127.0.0.1 alone.
 
 ## Safety
 
@@ -83,6 +106,7 @@ lib/
     ble.dart              scan + transport (FSC-BT986, FFF0/FFF1/FFF2), flutter_blue_plus   (from DYNABO)
     line_device.dart      base device: connect, PING heartbeat, ordered writes, line framing
     recorder.dart         CSV recording                                                     (from DYNABO)
+    asset_server.dart     serves assets/web/ to the WebViews on 127.0.0.1
     updater.dart          updates from GitHub Releases: check, download, open the installer (from DYNABO)
   devices/mars/
     mars_protocol.dart    D / M / L / P lines, fault and relay bits, COP (= the MARS GUI's)
@@ -94,9 +118,14 @@ lib/
     plots.dart            time plot, load-cell platform (CustomPainter)
     robot_view.dart       lever dial and arm plane (CustomPainter)
     connect_dialog.dart   BLE device picker, device header                                 (from DYNABO)
+    web_page.dart         a bundled web page in a WebView, with a message bridge
+    game_screen.dart      VOID WING full screen: arm input in, session logs out, EXIT / HOLD
     update_dialog.dart    Check for updates dialog                                         (from DYNABO)
     device_tab.dart       DeviceController interface
     tabs/mars_tab.dart    the MARS interface
+assets/web/
+  robot3d/                the 3D model page: three.js r169, scene.js, models/ (the private CAD, not in this repo)
+  game/                   VOID WING web export (from Software/VoidWing)
 tools/
   publish_release.ps1     build + publish a release from the laptop
 test/
@@ -107,5 +136,4 @@ To run the tests, use `flutter test`.
 
 ## Not in this version
 
-- **The game:** VOID WING is a Godot desktop program. It still runs on the laptop, fed by the MARS GUI over UDP.
 - **Calibration wizard and τg sweep:** these stay in the desktop GUI. The tablet shows the result (robot model) and can measure the lever and the arm.

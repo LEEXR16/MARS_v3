@@ -2,7 +2,7 @@
 ///
 ///   header  connection, stream rate, mode, faults, brake, home
 ///   left    readouts: motor theta1, encoders, solenoids and power, load cells (kg, COP)
-///   centre  the robot (lever dial + arm plane), theta1 and torque plots
+///   centre  the robot (3D CAD model, or the lever dial + arm plane), theta1 and torque plots
 ///   right   HOLD, then CONTROL / ASSIST / SETUP, and the robot's messages
 ///
 /// Same rules as the desktop GUI: the firmware does every safety check and refuses what isn't
@@ -20,9 +20,11 @@ import '../../devices/mars/mars_model.dart';
 import '../../devices/mars/mars_protocol.dart';
 import '../connect_dialog.dart';
 import '../device_tab.dart';
+import '../game_screen.dart';
 import '../plots.dart';
 import '../robot_view.dart';
 import '../theme.dart' as th;
+import '../web_page.dart';
 import '../widgets.dart';
 
 const _plotHz = 20; // plot repaint rate
@@ -91,6 +93,8 @@ class _MarsTabState extends State<MarsTab> {
   ConnState _lastState = ConnState.disconnected;
 
   _Page _page = _Page.control;
+  bool _show3d = true; // the CAD model (assets/web/robot3d), else the 2D dial + arm plane
+  late final LocalWebPage _robot3d = LocalWebPage(path: 'robot3d/index.html', channel: 'MarsView');
   double _goDeg = 90;
   double _alpha = 100;
   double _kpCenter = 5;
@@ -112,7 +116,10 @@ class _MarsTabState extends State<MarsTab> {
     device.addListener(_onDevice);
     _timer = Timer.periodic(const Duration(milliseconds: 1000 ~/ _plotHz), (_) {
       _plotTick.value++;
-      if (++_tick % _valuesEvery == 0 && mounted) setState(() {});
+      if (++_tick % _valuesEvery == 0 && mounted) {
+        setState(() {});
+        if (_show3d) _feed3d();
+      }
     });
     recordingsFolder('session').then((d) {
       if (mounted) setState(() => _recFolder = d.path);
@@ -146,6 +153,18 @@ class _MarsTabState extends State<MarsTab> {
     if (mounted) setState(() {});
   }
 
+  /// The 3D page eases the joints towards these, so 10 updates a second look smooth.
+  void _feed3d() {
+    final s = device.latest;
+    _robot3d.setGlobal('marsState', {
+      'live': device.live,
+      'theta1': s?.theta ?? 0,
+      'enc': s?.joints ?? [0, 0, 0],
+      'encOk': [for (var i = 0; i < 3; i++) s?.encOk(i) ?? false],
+      'mode': s?.mode ?? '',
+    });
+  }
+
   // ---- State shortcuts ----
 
   MarsSample? get _s => device.live ? device.latest : null;
@@ -168,6 +187,11 @@ class _MarsTabState extends State<MarsTab> {
           device: device,
           expectedNames: expectedNames,
           pills: _pills(),
+          extra: OutlinedButton.icon(
+            onPressed: () => openGame(context, widget.ctl),
+            icon: const Icon(Icons.sports_esports_rounded, size: 18),
+            label: const Text('GAME'),
+          ),
         ),
         hline,
         Expanded(
@@ -331,10 +355,19 @@ class _MarsTabState extends State<MarsTab> {
       Expanded(
         flex: 5,
         child: DCard(
-          title: 'Robot · live',
+          title: _show3d ? 'Robot · live 3D' : 'Robot · live',
           online: online,
           expand: true,
-          child: RobotView(device: device, tick: _plotTick),
+          trailing: SmallIconButton(
+            _show3d ? Icons.timeline_rounded : Icons.view_in_ar_rounded,
+            tooltip: _show3d ? 'Lever dial and arm plane' : '3D model',
+            onPressed: () => setState(() => _show3d = !_show3d),
+          ),
+          // both stay alive, so switching back doesn't reload the 3D model
+          child: IndexedStack(index: _show3d ? 0 : 1, children: [
+            _robot3d.build(),
+            RobotView(device: device, tick: _plotTick),
+          ]),
         ),
       ),
       const SizedBox(height: 10),

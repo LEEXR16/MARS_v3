@@ -9,6 +9,15 @@ When you make an update, add a section at the top with the version, build, date,
 
 ---
 
+## 1.1.0 (build 3): 2026-10-21
+
+- **Changed:** 2026-10-21
+- **Released:** 2026-10-21, from the laptop with `tools/publish_release.ps1` (release `v1.1.0-b3`). The robot CAD is private, so this build was made where the model is present.
+
+- **Live 3D model:** the robot card on the MARS tab shows the robot in 3D, moving with the live joint angles. The icon in the card header switches back to 2D.
+- **VOID WING game:** the Godot web export, full screen, from the **GAME** button on the MARS tab or the card on the welcome screen. The arm steers through Bluetooth. EXIT and HOLD stay on screen. Session logs are saved in `MARS/game/`.
+- Web pages are served from inside the app on 127.0.0.1, with no internet access.
+
 ## 1.0.0 (build 2): 2026-10-21
 
 - **Changed:** 2026-10-21 15:55

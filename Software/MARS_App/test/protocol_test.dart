@@ -7,6 +7,7 @@ import 'package:mars_app/core/line_device.dart';
 import 'package:mars_app/devices/mars/mars_protocol.dart';
 import 'package:mars_app/main.dart';
 import 'package:mars_app/ui/tabs/mars_tab.dart';
+import 'package:mars_app/ui/web_page.dart';
 
 // Lines exactly as Firmware_SOLO_v2 prints them
 const dLine = 'D,123456,HOLD,0,90.12,0.3,6.215,4.32,31,0,100.0,100.0,6.200,150.0,90.00,0,12.50,-48.20,3.10,31,1';
@@ -48,6 +49,24 @@ void main() {
     expect(faultText(2 | 8, 0), 'CAN LOST · TORQUE');
   });
 
+  test('cuff position matches the desktop GUI kinematics', () {
+    // reference values from CODE/MARS_GUI/kinematics.py fk()
+    for (final (a, want) in const [
+      ([90.0, 12.5, -48.2], [0.0, 767.247, 3.829]),
+      ([30.0, -20.0, 10.0], [694.115, 400.747, -141.264]),
+      ([0.0, 0.0, 0.0], [835.0, 0.0, 75.0]),
+    ]) {
+      final c = cuffMm(a[0], a[1], a[2]);
+      for (var i = 0; i < 3; i++) {
+        expect(c[i], closeTo(want[i], 0.01));
+      }
+    }
+    final g = gameInput(parseD(dLine.substring(2), 0)!, 7);
+    expect(g['seq'], 7);
+    expect(g['enc_ok'], isTrue);
+    expect((g['cuff_mm'] as List).length, 3);
+  });
+
   test('device framing: split lines, partial packets, state', () {
     final c = MarsController();
     final d = c.device;
@@ -65,6 +84,7 @@ void main() {
   });
 
   Future<void> pumpApp(WidgetTester tester, MarsController c) async {
+    webPagesEnabled = false; // no platform WebView in tests
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
@@ -78,6 +98,7 @@ void main() {
     c.device.state = ConnState.connected;
     await pumpApp(tester, c);
     expect(find.text('MACHINE'), findsOneWidget);
+    expect(find.text('VOID WING'), findsOneWidget);
     await tester.tap(find.text('MACHINE'));
     await tester.pump(const Duration(milliseconds: 100));
     for (var i = 0; i < 8; i++) {
