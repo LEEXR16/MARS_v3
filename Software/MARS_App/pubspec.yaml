@@ -1,0 +1,34 @@
+name: mars_app
+description: "MARS tablet app: the machine interface of the MARS arm-support robot over Bluetooth"
+publish_to: 'none'
+
+# version: name+build. Android and the update check compare the build number;
+# tools/publish_release.ps1 raises it.
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.13.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_blue_plus: ^1.34.5
+  path_provider: ^2.1.6
+  wakelock_plus: ^1.8.1
+  http: ^1.6.0
+  package_info_plus: ^10.2.2
+  open_filex: ^4.7.0
+  crypto: ^3.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  fonts:
+    # Oxanium (OFL), the MARS GUI's title font
+    - family: Oxanium
+      fonts:
+        - asset: assets/fonts/Oxanium.ttf

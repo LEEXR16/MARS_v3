@@ -1,0 +1,122 @@
+# Builds the MARS tablet app in the cloud and publishes it as a Release of this repository, so tablets
+# get it from "Check for updates" (lib/core/updater.dart: updateRepo = this repo). Same result as
+# Software/MARS_App/tools/publish_release.ps1 on the laptop.
+#
+# Start a release (from any branch) by pushing a tag app-v<version>; the tag message is the notes:
+#   git tag -a app-v1.0.0 -m "What changed, in a line or two"
+#   git push origin app-v1.0.0
+# Or: GitHub -> Actions -> "Release tablet app" -> Run workflow.
+#
+# Needs one secret: SIGNING_KEYSTORE_B64, the signing keystore as base64. This repo is public, so the
+# key is never committed. It is the laptop's debug key (%USERPROFILE%\.android\debug.keystore), the
+# same as DYNABO's. The run stops if its fingerprint is not the expected one, because tablets refuse an
+# update signed with another key. Publishing uses the workflow's own token (contents: write).
+# The build number is the latest release's + 1 (or pubspec.yaml's + 1 if higher).
+name: Release tablet app
+
+on:
+  push:
+    tags: ['app-v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version name, e.g. 1.0.0'
+        required: true
+      notes:
+        description: 'What changed, in a line or two (shown on the tablet)'
+        required: true
+
+permissions:
+  contents: write # create the release in this repo
+
+concurrency: release-app # one release at a time
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: Software/MARS_App
+    env:
+      KEY_SHA256: '17:F0:D6:6C:52:09:D0:85:8F:A2:45:51:3B:6D:E7:E9:62:F2:8D:EF:79:97:1C:FD:E6:72:2F:52:D1:77:F0:A4'
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version and notes
+        env:
+          IN_VERSION: ${{ inputs.version }}
+          IN_NOTES: ${{ inputs.notes }}
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+            version="${GITHUB_REF_NAME#app-v}"
+            # checkout turns an annotated tag into a plain one; fetch it again for its message
+            git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+            notes=$(git tag -l --format='%(contents)' "$GITHUB_REF_NAME")
+          else
+            version="$IN_VERSION"; notes="$IN_NOTES"
+          fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "::error::Version must look like 1.0.0 (tag app-v1.0.0), got '$version'"; exit 1; }
+          [[ -n "${notes//[[:space:]]/}" ]] || { echo "::error::No notes: give the tag a message (git tag -a ... -m \"...\")"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          { echo "NOTES<<NOTES_END"; echo "$notes"; echo "NOTES_END"; } >> "$GITHUB_ENV"
+          echo "Version $version, notes: $notes"
+
+      - name: Signing key (from the secret, never from the repo)
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
+        run: |
+          [[ -n "$KEYSTORE_B64" ]] || { echo "::error::Secret SIGNING_KEYSTORE_B64 is missing (see the top of this file)"; exit 1; }
+          mkdir -p ~/.android
+          echo "$KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+          fp=$(keytool -list -v -keystore ~/.android/debug.keystore -storepass android -alias androiddebugkey | awk '/SHA256:/ {print $2}')
+          echo "Key fingerprint: $fp"
+          [[ "$fp" == "$KEY_SHA256" ]] || { echo "::error::Wrong signing key: tablets would refuse this update"; exit 1; }
+
+      - name: Next build number
+        run: |
+          last=$(gh release download --repo "$GITHUB_REPOSITORY" --pattern version.json --output - 2>/dev/null | jq -r .build || true)
+          [[ "$last" =~ ^[0-9]+$ ]] || last=0   # no release yet
+          mine=$(sed -n 's/^version: *[0-9.]*+\([0-9]*\).*/\1/p' pubspec.yaml)
+          build=$(( (last > mine ? last : mine) + 1 ))
+          echo "Latest release build $last, pubspec build $mine -> build $build"
+          echo "BUILD=$build" >> "$GITHUB_ENV"
+          echo "TAG=v$VERSION-b$build" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.5' # the laptop's version
+          channel: stable
+          cache: true
+
+      - name: Analyze and test
+        run: |
+          flutter pub get
+          flutter analyze
+          flutter test
+
+      - name: Build
+        run: flutter build apk --release --build-name "$VERSION" --build-number "$BUILD"
+
+      - name: Release files
+        run: |
+          mkdir -p out
+          cp build/app/outputs/flutter-apk/app-release.apk out/
+          jq -n --arg version "$VERSION" --argjson build "$BUILD" \
+                --arg apk "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/app-release.apk" \
+                --argjson size "$(stat -c %s out/app-release.apk)" \
+                --arg sha256 "$(sha256sum out/app-release.apk | cut -d' ' -f1)" \
+                --arg notes "$NOTES" \
+                '{version: $version, build: $build, apk: $apk, size: $size, sha256: $sha256, notes: $notes}' > out/version.json
+          cat out/version.json
+
+      - name: Publish
+        run: |
+          gh release create "$TAG" out/app-release.apk out/version.json --repo "$GITHUB_REPOSITORY" \
+            --title "MARS $VERSION ($BUILD)" --notes "$NOTES" --latest
+          echo "Published $TAG. Tablets get it from Check for updates."

@@ -1,0 +1,9 @@
+# Machine-local files
+desktop.ini
+.vscode/
+.claude/
+
+# Never commit a signing key: this repository is public
+*.keystore
+*.jks
+key.properties
