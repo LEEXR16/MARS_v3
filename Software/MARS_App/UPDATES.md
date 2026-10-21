@@ -9,10 +9,10 @@ When you make an update, add a section at the top with the version, build, date,
 
 ---
 
-## 1.0.0 (build 1): 2026-10-21
+## 1.0.0 (build 2): 2026-10-21
 
-- **Changed:** 2026-10-21 (not committed yet)
-- **Released:** not yet
+- **Changed:** 2026-10-21 15:55
+- **Released:** 2026-10-21 16:01, by GitHub Actions from tag `app-v1.0.0` (release `v1.0.0-b2`)
 
 First version, built like the DYNABO app:
 - **Bluetooth LE** to the robot's FSC-BT986 (needs `Firmware_SOLO_v2`).
